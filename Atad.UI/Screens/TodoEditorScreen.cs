@@ -53,15 +53,15 @@ public class TodoEditorScreen
 
         textView.KeyDown += async args =>
         {
-            // Discard and exit editor
-            if (args.KeyEvent.Key == (Key.CtrlMask | Key.Esc))
+            // Discard and exit editor (F12)
+            if (args.KeyEvent.Key == Key.F12)
             {
                 args.Handled = true;
                 Closed?.Invoke();
                 return;
             }
 
-            // Save and exit editor
+            // Save and exit editor (Esc)
             if (args.KeyEvent.Key == Key.Esc)
             {
                 args.Handled = true;

@@ -31,7 +31,7 @@ public static class KeyboardShortcutProvider
         _ =>
         [
             new KeyboardShortcutViewModel("[Esc]", "Save and back"),
-            new KeyboardShortcutViewModel("[Ctrl+Esc]", "Exit without save")
+            new KeyboardShortcutViewModel("[F12]", "Exit without save")
         ]
     };
 }

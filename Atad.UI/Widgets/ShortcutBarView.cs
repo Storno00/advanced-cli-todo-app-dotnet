@@ -36,15 +36,11 @@ public class ShortcutBarView : View
             return;
         }
 
-        var totalWidth = shortcuts
-            .Sum(s => s.KeyboardShortcut.Length + s.Description.Length + 3) + 1;
-
-        X = Pos.AnchorEnd(totalWidth);
-        Y = Pos.AnchorEnd(1);
-        Width = totalWidth;
-        Height = 1;
+        var totalWidth = 0;
 
         Pos currentX = 0;
+        var keyLabels = new List<Label>();
+        var descLabels = new List<Label>();
 
         for (var i = 0; i < shortcuts.Count; i++)
         {
@@ -54,6 +50,8 @@ public class ShortcutBarView : View
             var descText = i == shortcuts.Count - 1
                 ? $"{shortcut.Description}"
                 : $"{shortcut.Description} | ";
+
+            totalWidth += keyText.Length + descText.Length;
 
             var keyLabel = new Label(keyText)
             {
@@ -72,5 +70,10 @@ public class ShortcutBarView : View
             Add(keyLabel, descLabel);
             currentX = Pos.Right(descLabel);
         }
+
+        X = Pos.AnchorEnd(totalWidth);
+        Y = Pos.AnchorEnd(1);
+        Width = totalWidth;
+        Height = 1;
     }
 }
