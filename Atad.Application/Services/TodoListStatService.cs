@@ -21,16 +21,17 @@ public class TodoListStatService(ITodoListRepository todoListRepository, ITodoRe
         foreach (var todoListId in allTodoListIds)
         {
             var allTodosOfCurrentList = await _todoRepository.GetAllTodosAsync(todoListId);
-            var allCompleatedTodoCountOfCurrentList = allTodosOfCurrentList
+            var allCompletedTodoCountOfCurrentList = allTodosOfCurrentList
                 .Where(todo => todo.IsDone)
                 .ToList()
                 .Count;
-            var complitionPercentage = allTodosOfCurrentList.Count == 0
+            
+            var completionPercentage = allTodosOfCurrentList.Count == 0
                 ? 0
-                : allCompleatedTodoCountOfCurrentList / allTodosOfCurrentList.Count * 100;
+                : (allCompletedTodoCountOfCurrentList * 100) / allTodosOfCurrentList.Count;
 
             var todoListStat = new TodoListStat(allTodosOfCurrentList.Count,
-                complitionPercentage);
+                completionPercentage);
 
             output.Add(todoListId, todoListStat);
         }

@@ -45,28 +45,43 @@ public class ListOverviewScreen
         table.Columns.Add("Name");
         table.Columns.Add("Compleation");
         table.Columns.Add("Total number of TODOs");
+        table.Columns.Add("Creation date");
 
         foreach (var todoList in _todoLists)
         {
             todoListStats.TryGetValue(todoList.Id, out var todoStat);
 
-            table.Rows.Add(todoList.Name);
-            table.Rows.Add(todoStat?.ComplitionPercentage.ToString());
-            table.Rows.Add(todoStat?.TotalNumberOfTodos.ToString());
+            table.Rows.Add(
+                todoList.Name,
+                $"{todoStat?.ComplitionPercentage}%",
+                todoStat?.TotalNumberOfTodos.ToString(),
+                todoList.CreatedAt.ToString("yyyy-MM-dd"));
         }
 
         var tableView = new TableView(table)
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
-            FullRowSelect = true
+            FullRowSelect = true,
         };
 
-        //tableView.Style.ShowHorizontalHeaderOverline = false;
-        //tableView.Style.ShowHorizontalHeaderUnderline = false;
-        //tableView.Style.ShowHorizontalBottomline = false;
-        //tableView.Style.ShowVerticalCellLines = false;
-        //tableView.Style.ShowVerticalHeaderLines = false;
+        tableView.Style.ShowHorizontalHeaderOverline = false;
+        tableView.Style.ShowVerticalCellLines = false;
+        tableView.Style.ShowVerticalHeaderLines = false;
+        
+        const int columnGap = 10;
+        foreach (DataColumn column in table.Columns)
+        {
+            var longestCellLength = table.Rows.Cast<DataRow>()
+                .Select(row => row[column]?.ToString()?.Length ?? 0)
+                .DefaultIfEmpty(0)
+                .Max();
+ 
+            tableView.Style.ColumnStyles[column] = new TableView.ColumnStyle
+            {
+                MinWidth = Math.Max(column.ColumnName.Length, longestCellLength) + columnGap
+            };
+        }
 
         tableView.SelectedRow = _lastKnownIndex >= _todoLists.Count
             ? Math.Max(_todoLists.Count - 1, 0)
