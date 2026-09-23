@@ -29,6 +29,7 @@ public class MainWindow : Window
     public MainWindow(
         ITodoListRepository todoListRepo,
         ITodoRepository todoRepo,
+        ITodoListStatService todoStatService,
         NavigationContext navContext)
     {
         _navContext = navContext;
@@ -59,7 +60,7 @@ public class MainWindow : Window
 
         Add(_breadcrumbLabel, _contentArea, _shortcutBar);
 
-        _listOverviewScreen = new ListOverviewScreen(todoListRepo, todoRepo);
+        _listOverviewScreen = new ListOverviewScreen(todoListRepo, todoRepo, todoStatService);
         _listOverviewScreen.ListOpened += ShowTodoListDetail;
 
         _todoListDetailScreen = new TodoListDetailScreen(todoRepo);

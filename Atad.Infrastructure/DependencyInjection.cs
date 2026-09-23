@@ -1,4 +1,5 @@
 using Atad.Application.Interfaces;
+using Atad.Application.Services;
 using Atad.Infrastructure.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
@@ -20,6 +21,9 @@ public static class DependencyInjection
         // Repositories
         services.AddScoped<ITodoListRepository, TodoListRepository>();
         services.AddScoped<ITodoRepository, TodoRepository>();
+
+        // Services
+        services.AddScoped<ITodoListStatService, TodoListStatService>();
 
         return services;
     }

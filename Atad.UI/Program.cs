@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Atad.Infrastructure;
+﻿using Atad.Infrastructure;
 using Atad.UI;
 using Atad.UI.Navigation;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +13,7 @@ BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard
 var services = new ServiceCollection();
 
 services.AddInfrastructure(
-    connectionString: "mongodb://localhost:27017",
+    connectionString: "mongodb://localhost:5204",
     databaseName: "AtadTodoDb"
 );
 

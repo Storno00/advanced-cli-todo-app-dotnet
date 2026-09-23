@@ -1,3 +1,4 @@
+using System.Data;
 using Atad.Application.Interfaces;
 using Atad.Domain.Models;
 using Atad.UI.Dialogs;
@@ -15,16 +16,19 @@ public class ListOverviewScreen
     private readonly ITodoListRepository _todoListRepo;
     private readonly ITodoRepository _todoRepo;
 
+    private readonly ITodoListStatService _todoListStatService;
+
     private View? _container;
     private List<TodoList> _todoLists = [];
     private int _lastKnownIndex;
 
     public event Action<TodoList>? ListOpened;
 
-    public ListOverviewScreen(ITodoListRepository todoListRepo, ITodoRepository todoRepo)
+    public ListOverviewScreen(ITodoListRepository todoListRepo, ITodoRepository todoRepo, ITodoListStatService todoListStatService)
     {
         _todoListRepo = todoListRepo;
         _todoRepo = todoRepo;
+        _todoListStatService = todoListStatService;
     }
 
     public async void Render(View container)
@@ -33,29 +37,52 @@ public class ListOverviewScreen
         container.RemoveAll();
 
         _todoLists = (await _todoListRepo.GetAllTodoListsAsync()).ToList();
-        var todoListNames = _todoLists.Select(todoList => $"- {todoList.Name}").ToList();
 
-        var listView = new ListView(todoListNames)
+        var todoListStats = await _todoListStatService.GetAllTodoListStatsAsync();
+
+        var table = new DataTable();
+
+        table.Columns.Add("Name");
+        table.Columns.Add("Compleation");
+        table.Columns.Add("Total number of TODOs");
+
+        foreach (var todoList in _todoLists)
+        {
+            todoListStats.TryGetValue(todoList.Id, out var todoStat);
+
+            table.Rows.Add(todoList.Name);
+            table.Rows.Add(todoStat?.ComplitionPercentage.ToString());
+            table.Rows.Add(todoStat?.TotalNumberOfTodos.ToString());
+        }
+
+        var tableView = new TableView(table)
         {
             Width = Dim.Fill(),
-            Height = Dim.Fill()
+            Height = Dim.Fill(),
+            FullRowSelect = true
         };
 
-        listView.SelectedItem = _lastKnownIndex >= _todoLists.Count
-            ? _todoLists.Count - 1
+        //tableView.Style.ShowHorizontalHeaderOverline = false;
+        //tableView.Style.ShowHorizontalHeaderUnderline = false;
+        //tableView.Style.ShowHorizontalBottomline = false;
+        //tableView.Style.ShowVerticalCellLines = false;
+        //tableView.Style.ShowVerticalHeaderLines = false;
+
+        tableView.SelectedRow = _lastKnownIndex >= _todoLists.Count
+            ? Math.Max(_todoLists.Count - 1, 0)
             : _lastKnownIndex;
 
-        listView.SelectedItemChanged += e => _lastKnownIndex = e.Item;
+        tableView.SelectedCellChanged += args => _lastKnownIndex = args.NewRow;
 
-        listView.OpenSelectedItem += args =>
+        tableView.CellActivated += args =>
         {
-            if (args.Item >= 0 && args.Item < _todoLists.Count)
+            if (args.Row >= 0 && args.Row < _todoLists.Count)
             {
-                ListOpened?.Invoke(_todoLists[args.Item]);
+                ListOpened?.Invoke(_todoLists[args.Row]);
             }
         };
 
-        listView.KeyDown += args =>
+        tableView.KeyDown += args =>
         {
             // Create a new list (F1)
             if (args.KeyEvent.Key is Key.F1)
@@ -65,22 +92,22 @@ public class ListOverviewScreen
             }
 
             // Rename list (F3)
-            if (args.KeyEvent.Key is Key.F3)
+            if (args.KeyEvent.Key is Key.F3 && _todoLists.Count > 0)
             {
-                ShowRenameDialog(_todoLists[listView.SelectedItem]);
+                ShowRenameDialog(_todoLists[tableView.SelectedRow]);
                 args.Handled = true;
             }
 
             // Delete a list (Del)
-            if (args.KeyEvent.Key is Key.DeleteChar)
+            if (args.KeyEvent.Key is Key.DeleteChar && _todoLists.Count > 0)
             {
-                ShowDeleteDialog(_todoLists[listView.SelectedItem]);
+                ShowDeleteDialog(_todoLists[tableView.SelectedRow]);
                 args.Handled = true;
             }
         };
 
-        container.Add(listView);
-        listView.SetFocus();
+        container.Add(tableView);
+        tableView.SetFocus();
     }
 
     private void ShowCreateDialog()
