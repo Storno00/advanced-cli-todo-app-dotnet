@@ -11,9 +11,8 @@ namespace Atad.UI.Screens;
 /// toggle-done interactions for todos. Raises <see cref="TodoOpened"/> when
 /// the user opens a todo, letting the caller decide what happens next.
 /// </summary>
-public class TodoListDetailScreen
+public class TodoListDetailScreen(ITodoRepository todoRepo)
 {
-    private readonly ITodoRepository _todoRepo;
     private readonly Dictionary<Guid, int> _lastKnownIndexes = [];
 
     private View? _container;
@@ -22,18 +21,13 @@ public class TodoListDetailScreen
 
     public event Action<Todo>? TodoOpened;
 
-    public TodoListDetailScreen(ITodoRepository todoRepo)
-    {
-        _todoRepo = todoRepo;
-    }
-
     public async void Render(View container, TodoList list)
     {
         _container = container;
         _activeList = list;
         container.RemoveAll();
 
-        var todos = await _todoRepo.GetAllTodosAsync(list.Id);
+        var todos = await todoRepo.GetAllTodosAsync(list.Id);
         _orderedTodos = FlattenTodos(todos, parentId: null);
 
         var todoStrings = _orderedTodos.Select(todo =>
@@ -95,7 +89,7 @@ public class TodoListDetailScreen
                 if (selectedTodo.ParentId is null) return;
 
                 selectedTodo.ToggleIsDone();
-                await _todoRepo.UpsertTodoAsync(selectedTodo);
+                await todoRepo.UpsertTodoAsync(selectedTodo);
 
                 // If all children are done, mark the parent as done as well
                 var parent = _orderedTodos.First(t => t.Id == selectedTodo.ParentId);
@@ -104,16 +98,26 @@ public class TodoListDetailScreen
                     .All(t => t.IsDone);
                     
                 parent.IsDone = allSiblingsAreDone;
-                await _todoRepo.UpsertTodoAsync(parent);
+                await todoRepo.UpsertTodoAsync(parent);
 
                 Render(container, list);
             }
 
-            // Create (Ctrl+Enter, Ctrl+N)
-            if (args.KeyEvent.Key is (Key.CtrlMask | Key.Enter) or (Key.CtrlMask | Key.n) or (Key.CtrlMask | Key.N))
+            // Create parent (F3)
+            if (args.KeyEvent.Key is Key.F3)
             {
                 args.Handled = true;
                 ShowCreateDialog(list.Id);
+            }
+            
+            // Create a child (F4)
+            if (args.KeyEvent.Key is Key.F4)
+            {
+                args.Handled = true;
+                
+                var parentId = selectedTodo.ParentId ?? selectedTodo.Id;
+
+                ShowCreateDialog(list.Id, parentId);
             }
 
             // Rename (F2)
@@ -150,12 +154,15 @@ public class TodoListDetailScreen
         return result;
     }
 
-    private void ShowCreateDialog(Guid listId)
+    private void ShowCreateDialog(Guid listId, Guid? parentId = null)
     {
         TextInputDialog.Show("New TODO", "Save", async text =>
         {
-            var newTodo = new Todo { Name = text, TodoListId = listId };
-            await _todoRepo.UpsertTodoAsync(newTodo);
+            var newTodo = parentId is not null
+                ? new Todo { Name = text, TodoListId = listId, ParentId = parentId }
+                : new Todo { Name = text, TodoListId = listId };
+            
+            await todoRepo.UpsertTodoAsync(newTodo);
             Render(_container!, _activeList!);
         });
     }
@@ -165,7 +172,7 @@ public class TodoListDetailScreen
         TextInputDialog.Show($"Rename '{todoToRename.Name}'", "Rename", async text =>
         {
             todoToRename.Name = text;
-            await _todoRepo.UpsertTodoAsync(todoToRename);
+            await todoRepo.UpsertTodoAsync(todoToRename);
             Render(_container!, _activeList!);
         }, includeCancelButton: true);
     }
@@ -177,7 +184,7 @@ public class TodoListDetailScreen
             "Are you sure you want to delete this todo?",
             async () =>
             {
-                await _todoRepo.DeleteTodoByIdAsync(todoToDelete.Id);
+                await todoRepo.DeleteTodoByIdAsync(todoToDelete.Id);
                 Render(_container!, _activeList!);
             });
     }
