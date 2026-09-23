@@ -12,16 +12,16 @@ public static class KeyboardShortcutProvider
     {
         ApplicationState.ListOverview =>
         [
-            new KeyboardShortcutViewModel("[Ctrl+Enter]", "Create new"),
-            new KeyboardShortcutViewModel("[F2]", "Edit title"),
+            new KeyboardShortcutViewModel("[F1]", "Create new"),
+            new KeyboardShortcutViewModel("[F3]", "Rename"),
             new KeyboardShortcutViewModel("[Del]", "Remove"),
-            new KeyboardShortcutViewModel("[Esc]", "Exit")
         ],
 
         ApplicationState.TodoListDetail =>
         [
-            new KeyboardShortcutViewModel("[Ctrl+Enter]", "Create new"),
-            new KeyboardShortcutViewModel("[F2]", "Edit title"),
+            new KeyboardShortcutViewModel("[F1]", "Create new"),
+            new KeyboardShortcutViewModel("[F2]", "Create new sub"),
+            new KeyboardShortcutViewModel("[F3]", "Rename"),
             new KeyboardShortcutViewModel("[Space]", "Toggle done"),
             new KeyboardShortcutViewModel("[Del]", "Remove"),
             new KeyboardShortcutViewModel("[Esc]", "Back")
@@ -30,8 +30,8 @@ public static class KeyboardShortcutProvider
         // ApplicationState.TodoEditor and any future default
         _ =>
         [
-            new KeyboardShortcutViewModel("[Esc]", "Save"),
-            new KeyboardShortcutViewModel("[Ctrl+Esc]", "Exit")
+            new KeyboardShortcutViewModel("[Esc]", "Save and back"),
+            new KeyboardShortcutViewModel("[Ctrl+Esc]", "Exit without save")
         ]
     };
 }

@@ -16,11 +16,14 @@ public static class TextInputDialog
         string title,
         string confirmLabel,
         Action<string> onConfirm,
+        string initialInputValue = "",
         bool includeCancelButton = false)
     {
         var dialog = new Dialog(title, 50, 7);
         var input = new TextField("") { X = 1, Y = 1, Width = Dim.Fill() - 2 };
         var okBtn = new Button(confirmLabel);
+
+        input.InsertText(initialInputValue);
 
         void Confirm()
         {

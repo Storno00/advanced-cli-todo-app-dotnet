@@ -57,22 +57,22 @@ public class ListOverviewScreen
 
         listView.KeyDown += args =>
         {
-            // Create a new list
-            if (args.KeyEvent.Key is (Key.CtrlMask | Key.Enter) or (Key.CtrlMask | Key.n) or (Key.CtrlMask | Key.N))
+            // Create a new list (F1)
+            if (args.KeyEvent.Key is Key.F1)
             {
                 ShowCreateDialog();
                 args.Handled = true;
             }
 
-            // Rename list
-            if (args.KeyEvent.Key is Key.F2)
+            // Rename list (F3)
+            if (args.KeyEvent.Key is Key.F3)
             {
                 ShowRenameDialog(_todoLists[listView.SelectedItem]);
                 args.Handled = true;
             }
 
-            // Delete a list
-            if (args.KeyEvent.Key is Key.Delete or Key.Backspace)
+            // Delete a list (Del)
+            if (args.KeyEvent.Key is Key.DeleteChar)
             {
                 ShowDeleteDialog(_todoLists[listView.SelectedItem]);
                 args.Handled = true;
@@ -100,7 +100,7 @@ public class ListOverviewScreen
             listToRename.Name = text;
             await _todoListRepo.UpsertTodoListAsync(listToRename);
             Render(_container!);
-        }, includeCancelButton: true);
+        }, initialInputValue: listToRename.Name, includeCancelButton: true);
     }
 
     private void ShowDeleteDialog(TodoList listToDelete)

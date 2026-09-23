@@ -71,6 +71,20 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
         }
     }
 
+    public async Task<bool> DeleteTodosByIdsAsync(List<Guid> todoIdsToDelete)
+    {
+        try
+        {
+            var result = await _collection.DeleteManyAsync(todo => todoIdsToDelete.Contains(todo.Id));
+
+            return result.IsAcknowledged && result.DeletedCount > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> DeleteTodosByTodoListId(Guid todoListId)
     {
         try

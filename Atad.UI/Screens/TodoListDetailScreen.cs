@@ -39,15 +39,17 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
                 var children = _orderedTodos
                     .Where(orderedTodo => orderedTodo.ParentId == todo.Id)
                     .ToList();
+                var hasChildren = children.Count > 0;
 
-                if (children.All(child => !child.IsDone)) checkbox = "[ ]";
-                if (children.All(child => child.IsDone)) checkbox = "[X]";
-                if (checkbox.Length == 0) checkbox = "[-]";
+                if (hasChildren && children.All(child => !child.IsDone)) checkbox = "[ ]";
+                if (hasChildren && children.All(child => child.IsDone)) checkbox = "[X]";
+                if (hasChildren && checkbox.Length == 0) checkbox = "[-]";
             }
 
             if (checkbox.Length == 0) checkbox = todo.IsDone ? "[X]" : "[ ]";
 
             var indent = todo.ParentId is not null ? "    → " : "↓";
+
             return $"{indent}{checkbox} {todo.Name}";
         }).ToList();
 
@@ -75,19 +77,32 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
 
         listView.KeyPress += async args =>
         {
-            if (listView.SelectedItem < 0 || listView.SelectedItem >= _orderedTodos.Count)
-                return;
-
-            var selectedTodo = _orderedTodos[listView.SelectedItem];
+            var selectedTodo = GetSelectedTodo(listView);
 
             // Toggle ([Space])
             if (args.KeyEvent.Key == Key.Space)
             {
                 args.Handled = true;
-                
-                // Parents cannot be toggled manually
-                if (selectedTodo.ParentId is null) return;
 
+                if (selectedTodo is null) return;
+
+                // If parent has no children
+                if (selectedTodo.ParentId is null)
+                {
+                    var children = _orderedTodos
+                        .Where(todo => todo.ParentId == selectedTodo.Id)
+                        .ToList();
+
+                    if (children.Count > 0) return;
+
+                    selectedTodo.ToggleIsDone();
+                    await todoRepo.UpsertTodoAsync(selectedTodo);
+                    Render(container, list);
+
+                    return;
+                }
+
+                // If parent has children
                 selectedTodo.ToggleIsDone();
                 await todoRepo.UpsertTodoAsync(selectedTodo);
 
@@ -96,47 +111,62 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
                 var allSiblingsAreDone = _orderedTodos
                     .Where(t => t.ParentId == selectedTodo.ParentId)
                     .All(t => t.IsDone);
-                    
+
                 parent.IsDone = allSiblingsAreDone;
                 await todoRepo.UpsertTodoAsync(parent);
 
                 Render(container, list);
             }
 
-            // Create parent (F3)
-            if (args.KeyEvent.Key is Key.F3)
+            // Create parent (F1)
+            if (args.KeyEvent.Key is Key.F1)
             {
                 args.Handled = true;
                 ShowCreateDialog(list.Id);
             }
-            
-            // Create a child (F4)
-            if (args.KeyEvent.Key is Key.F4)
+
+            // Create a child (F2)
+            if (args.KeyEvent.Key is Key.F2)
             {
                 args.Handled = true;
-                
+
+                if (selectedTodo is null) return;
+
                 var parentId = selectedTodo.ParentId ?? selectedTodo.Id;
 
                 ShowCreateDialog(list.Id, parentId);
             }
 
-            // Rename (F2)
-            if (args.KeyEvent.Key == Key.F2)
+            // Rename (F3)
+            if (args.KeyEvent.Key == Key.F3)
             {
                 args.Handled = true;
+
+                if (selectedTodo is null) return;
+
                 ShowRenameDialog(selectedTodo);
             }
 
-            // Delete (Delete / Backspace)
-            if (args.KeyEvent.Key is Key.Delete or Key.Backspace)
+            // Delete (Del)
+            if (args.KeyEvent.Key is Key.DeleteChar)
             {
                 args.Handled = true;
+
+                if (selectedTodo is null) return;
+
                 ShowDeleteDialog(selectedTodo);
             }
         };
 
         container.Add(listView);
         listView.SetFocus();
+    }
+
+    private Todo? GetSelectedTodo(ListView listView)
+    {
+        if (listView.SelectedItem < 0 || listView.SelectedItem >= _orderedTodos.Count) return null;
+
+        return _orderedTodos[listView.SelectedItem];
     }
 
     private static List<Todo> FlattenTodos(IEnumerable<Todo> allTodos, Guid? parentId)
@@ -156,12 +186,30 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
 
     private void ShowCreateDialog(Guid listId, Guid? parentId = null)
     {
-        TextInputDialog.Show("New TODO", "Save", async text =>
+        var dialogTitle = parentId is not null
+            ? "Create new SUB_TODO"
+            : "Create new TODO";
+
+        TextInputDialog.Show(dialogTitle, "Save", async text =>
         {
             var newTodo = parentId is not null
                 ? new Todo { Name = text, TodoListId = listId, ParentId = parentId }
                 : new Todo { Name = text, TodoListId = listId };
-            
+
+            // If parent doesn't have children and parent is compleated, then set to incompleate
+            if (newTodo.ParentId is not null && !_orderedTodos.Any(todo => todo.ParentId == parentId))
+            {
+                var parent = _orderedTodos.Find(todo => todo.Id == parentId);
+
+                if (parent is null) return;
+
+                if (parent.IsDone)
+                {
+                    parent.IsDone = false;
+                    await todoRepo.UpsertTodoAsync(parent);
+                }
+            }
+
             await todoRepo.UpsertTodoAsync(newTodo);
             Render(_container!, _activeList!);
         });
@@ -174,7 +222,7 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
             todoToRename.Name = text;
             await todoRepo.UpsertTodoAsync(todoToRename);
             Render(_container!, _activeList!);
-        }, includeCancelButton: true);
+        }, initialInputValue: todoToRename.Name, includeCancelButton: true);
     }
 
     private void ShowDeleteDialog(Todo todoToDelete)
@@ -184,6 +232,16 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
             "Are you sure you want to delete this todo?",
             async () =>
             {
+                if (todoToDelete.ParentId is null)
+                {
+                    var childrenToDelete = _orderedTodos
+                        .Where(todo => todo.ParentId == todoToDelete.Id)
+                        .Select(todo => todo.Id)
+                        .ToList();
+
+                    await todoRepo.DeleteTodosByIdsAsync(childrenToDelete);
+                }
+
                 await todoRepo.DeleteTodoByIdAsync(todoToDelete.Id);
                 Render(_container!, _activeList!);
             });

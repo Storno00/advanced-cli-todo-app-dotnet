@@ -11,6 +11,8 @@ public interface ITodoRepository
     public Task<bool> UpdateTodoAsync(Todo newTodo);
     
     public Task<bool> DeleteTodoByIdAsync(Guid id);
-    
+
+    public Task<bool> DeleteTodosByIdsAsync(List<Guid> todoIdsToDelete);
+
     public Task<bool> DeleteTodosByTodoListId(Guid todoListId);
 }
