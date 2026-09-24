@@ -112,8 +112,8 @@ public class ListOverviewScreen
                 args.Handled = true;
             }
 
-            // Rename list (F3)
-            if (args.KeyEvent.Key is Key.F3 && _todoLists.Count > 0)
+            // Rename list (F2)
+            if (args.KeyEvent.Key is Key.F2 && _todoLists.Count > 0)
             {
                 ShowRenameDialog(_todoLists[tableView.SelectedRow]);
                 args.Handled = true;

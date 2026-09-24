@@ -13,15 +13,15 @@ public static class KeyboardShortcutProvider
         ApplicationState.ListOverview =>
         [
             new KeyboardShortcutViewModel("[F1]", "Create new"),
-            new KeyboardShortcutViewModel("[F3]", "Rename"),
+            new KeyboardShortcutViewModel("[F2]", "Rename"),
             new KeyboardShortcutViewModel("[Del]", "Remove"),
         ],
 
         ApplicationState.TodoListDetail =>
         [
             new KeyboardShortcutViewModel("[F1]", "Create new"),
-            new KeyboardShortcutViewModel("[F2]", "Create new sub"),
-            new KeyboardShortcutViewModel("[F3]", "Rename"),
+            new KeyboardShortcutViewModel("[F2]", "Rename"),
+            new KeyboardShortcutViewModel("[F3]", "Create new sub"),
             new KeyboardShortcutViewModel("[Space]", "Toggle done"),
             new KeyboardShortcutViewModel("[Del]", "Remove"),
             new KeyboardShortcutViewModel("[Esc]", "Back")

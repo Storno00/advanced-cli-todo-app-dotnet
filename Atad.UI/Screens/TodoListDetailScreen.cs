@@ -131,8 +131,8 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
                 ShowCreateDialog(list.Id);
             }
 
-            // Create a child (F2)
-            if (args.KeyEvent.Key is Key.F2)
+            // Create a child (F3)
+            if (args.KeyEvent.Key is Key.F3)
             {
                 args.Handled = true;
 
@@ -143,8 +143,8 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
                 ShowCreateDialog(list.Id, parentId);
             }
 
-            // Rename (F3)
-            if (args.KeyEvent.Key == Key.F3)
+            // Rename (F2)
+            if (args.KeyEvent.Key == Key.F2)
             {
                 args.Handled = true;
 
