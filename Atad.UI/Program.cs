@@ -10,11 +10,17 @@ using Attribute = Terminal.Gui.Attribute;
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 
+const string DefaultMongoConnectionString = "mongodb://localhost:27017";
+const string DefaultMongoDatabaseName = "AtadTodoDb";
+
+var settingsPath = Path.Combine(AppContext.BaseDirectory, "settings.json");
+var appSettings = AppSettingsLoader.Load(settingsPath, DefaultMongoConnectionString, DefaultMongoDatabaseName);
+
 var services = new ServiceCollection();
 
 services.AddInfrastructure(
-    connectionString: "mongodb://localhost:5204",
-    databaseName: "AtadTodoDb"
+    connectionString: appSettings.ConnectionString,
+    databaseName: appSettings.DatabaseName
 );
 
 services.AddSingleton<NavigationContext>();
