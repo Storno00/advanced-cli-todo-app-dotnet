@@ -30,6 +30,12 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
         var todos = await todoRepo.GetAllTodosAsync(list.Id);
         _orderedTodos = FlattenTodos(todos, parentId: null);
 
+        if (_orderedTodos.Count == 0)
+        {
+            ShowEmptyView(_container);
+            return;
+        }
+
         var todoStrings = _orderedTodos.Select(todo =>
         {
             var checkbox = "";
@@ -160,6 +166,36 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
 
         container.Add(listView);
         listView.SetFocus();
+    }
+
+    private void ShowEmptyView(View container)
+    {
+        container.CanFocus = true;
+
+        var emptyLabel = new Label("Currently there are no TODOs in this list. Press F1 to create a new one!")
+        {
+            X = Pos.Center(),
+            Y = Pos.Center(),
+            TextAlignment = TextAlignment.Centered,
+            CanFocus = true,
+            ColorScheme = new ColorScheme
+            {
+                Normal = Colors.Base.Normal,
+                Focus = new Terminal.Gui.Attribute(Color.White, Color.Black)
+            }
+        };
+
+        emptyLabel.KeyDown += (args) =>
+        {
+            if (args.KeyEvent.Key is Key.F1 && _activeList is not null)
+            {
+                ShowCreateDialog(_activeList.Id);
+                args.Handled = true;
+            }
+        };
+
+        container.Add(emptyLabel);
+        emptyLabel.SetFocus();
     }
 
     private Todo? GetSelectedTodo(ListView listView)

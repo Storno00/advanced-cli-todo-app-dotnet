@@ -1,7 +1,7 @@
-using System.Data;
 using Atad.Application.Interfaces;
 using Atad.Domain.Models;
 using Atad.UI.Dialogs;
+using System.Data;
 using Terminal.Gui;
 
 namespace Atad.UI.Screens;
@@ -37,6 +37,12 @@ public class ListOverviewScreen
         container.RemoveAll();
 
         _todoLists = (await _todoListRepo.GetAllTodoListsAsync()).ToList();
+
+        if (_todoLists.Count == 0)
+        {
+            ShowEmptyView(container);
+            return;
+        }
 
         var todoListStats = await _todoListStatService.GetAllTodoListStatsAsync();
 
@@ -123,6 +129,36 @@ public class ListOverviewScreen
 
         container.Add(tableView);
         tableView.SetFocus();
+    }
+
+    private void ShowEmptyView(View container)
+    {
+        container.CanFocus = true;
+
+        var emptyLabel = new Label("Currently there are no TODO lists. Press F1 to create a new one!")
+        {
+            X = Pos.Center(),
+            Y = Pos.Center(),
+            TextAlignment = TextAlignment.Centered,
+            CanFocus = true,
+            ColorScheme = new ColorScheme
+            {
+                Normal = Colors.Base.Normal,
+                Focus = new Terminal.Gui.Attribute(Color.White, Color.Black)
+            }
+        };
+
+        emptyLabel.KeyDown += (args) =>
+        {
+            if (args.KeyEvent.Key is Key.F1)
+            {
+                ShowCreateDialog();
+                args.Handled = true;
+            }
+        };
+
+        container.Add(emptyLabel);
+        emptyLabel.SetFocus();
     }
 
     private void ShowCreateDialog()
