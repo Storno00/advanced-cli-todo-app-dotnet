@@ -10,6 +10,18 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
     private readonly IMongoCollection<Todo> _collection =
         db.GetCollection<Todo>(MongoCollections.Todos);
 
+    private readonly ITodoListRepository _todoListRepository = new TodoListRepository(db);
+
+    private async Task TouchTodoListIfSuccessfulAsync(bool operationSucceeded, Guid todoListId)
+    {
+        if (!operationSucceeded)
+        {
+            return;
+        }
+
+        await _todoListRepository.TouchTodoListAsync(todoListId);
+    }
+
     public async Task<bool> UpsertTodoAsync(Todo todo)
     {
         try
@@ -20,7 +32,9 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
                 options: new ReplaceOptions { IsUpsert = true }
             );
 
-            return result.IsAcknowledged;
+            var isSuccess = result.IsAcknowledged;
+            await TouchTodoListIfSuccessfulAsync(isSuccess, todo.TodoListId);
+            return isSuccess;
         }
         catch
         {
@@ -49,7 +63,9 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
                 replacement: newTodo
             );
 
-            return result.IsAcknowledged && result.ModifiedCount > 0;
+            var isSuccess = result.IsAcknowledged && result.ModifiedCount > 0;
+            await TouchTodoListIfSuccessfulAsync(isSuccess, newTodo.TodoListId);
+            return isSuccess;
         }
         catch
         {
@@ -61,9 +77,17 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
     {
         try
         {
+            var todo = await _collection.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (todo is null)
+            {
+                return false;
+            }
+
             var result = await _collection.DeleteOneAsync(todo => todo.Id == id);
-            
-            return result.IsAcknowledged && result.DeletedCount > 0;
+
+            var isSuccess = result.IsAcknowledged && result.DeletedCount > 0;
+            await TouchTodoListIfSuccessfulAsync(isSuccess, todo.TodoListId);
+            return isSuccess;
         }
         catch
         {
@@ -75,9 +99,23 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
     {
         try
         {
+            var todoListIds = await _collection
+                .Find(todo => todoIdsToDelete.Contains(todo.Id))
+                .Project(todo => todo.TodoListId)
+                .ToListAsync();
+
             var result = await _collection.DeleteManyAsync(todo => todoIdsToDelete.Contains(todo.Id));
 
-            return result.IsAcknowledged && result.DeletedCount > 0;
+            var isSuccess = result.IsAcknowledged && result.DeletedCount > 0;
+            if (isSuccess)
+            {
+                foreach (var todoListId in todoListIds.Distinct())
+                {
+                    await _todoListRepository.TouchTodoListAsync(todoListId);
+                }
+            }
+
+            return isSuccess;
         }
         catch
         {
@@ -90,8 +128,10 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
         try
         {
             var result = await _collection.DeleteManyAsync(todo => todo.TodoListId == todoListId);
-            
-            return result.IsAcknowledged && result.DeletedCount > 0;
+
+            var isSuccess = result.IsAcknowledged && result.DeletedCount > 0;
+            await TouchTodoListIfSuccessfulAsync(isSuccess, todoListId);
+            return isSuccess;
         }
         catch
         {

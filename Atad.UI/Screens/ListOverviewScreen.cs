@@ -49,8 +49,9 @@ public class ListOverviewScreen
         var table = new DataTable();
 
         table.Columns.Add("Name");
-        table.Columns.Add("Compleation");
-        table.Columns.Add("Total number of TODOs");
+        table.Columns.Add("Progress");
+        table.Columns.Add("TODOs");
+        table.Columns.Add("Last updated");
         table.Columns.Add("Creation date");
 
         foreach (var todoList in _todoLists)
@@ -61,6 +62,7 @@ public class ListOverviewScreen
                 todoList.Name,
                 $"{todoStat?.ComplitionPercentage}%",
                 todoStat?.TotalNumberOfTodos.ToString(),
+                todoList.LastUpdatedAt.ToString("yyyy-MM-dd HH:mm"),
                 todoList.CreatedAt.ToString("yyyy-MM-dd"));
         }
 

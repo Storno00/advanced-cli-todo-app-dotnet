@@ -53,6 +53,20 @@ public class TodoListRepository(IMongoDatabase db) : ITodoListRepository
         }
     }
 
+    public async Task<bool> TouchTodoListAsync(Guid id)
+    {
+        try
+        {
+            var update = Builders<TodoList>.Update.Set(x => x.LastUpdatedAt, DateTime.UtcNow);
+            var result = await _collection.UpdateOneAsync(x => x.Id == id, update);
+            return result.IsAcknowledged && result.ModifiedCount > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> DeleteTodoListByIdAsync(Guid id)
     {
         try

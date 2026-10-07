@@ -9,6 +9,8 @@ public interface ITodoListRepository
     Task<TodoList?> GetTodoListByIdAsync(Guid id);
     
     Task<bool> UpsertTodoListAsync(TodoList todoList);
+
+    Task<bool> TouchTodoListAsync(Guid id);
     
     Task<bool> DeleteTodoListByIdAsync(Guid id);
 }
