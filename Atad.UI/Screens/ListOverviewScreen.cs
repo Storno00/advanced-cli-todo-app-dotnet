@@ -1,5 +1,6 @@
 using Atad.Application.Interfaces;
 using Atad.Domain.Models;
+using Atad.UI;
 using Atad.UI.Dialogs;
 using System.Data;
 using Terminal.Gui;
@@ -76,6 +77,22 @@ public class ListOverviewScreen
         tableView.Style.ShowHorizontalHeaderOverline = false;
         tableView.Style.ShowVerticalCellLines = false;
         tableView.Style.ShowVerticalHeaderLines = false;
+        tableView.Style.RowColorGetter = args =>
+        {
+            if (args.RowIndex < 0 || args.RowIndex >= _todoLists.Count)
+            {
+                return null;
+            }
+
+            var todoList = _todoLists[args.RowIndex];
+
+            if (ColorPalette.TryGetColorScheme(todoList.Color, out var scheme))
+            {
+                return scheme;
+            }
+
+            return null;
+        };
         
         const int columnGap = 10;
         foreach (DataColumn column in table.Columns)
@@ -125,6 +142,13 @@ public class ListOverviewScreen
             if (args.KeyEvent.Key is Key.DeleteChar && _todoLists.Count > 0)
             {
                 ShowDeleteDialog(_todoLists[tableView.SelectedRow]);
+                args.Handled = true;
+            }
+
+            // Colorize list (F4)
+            if (args.KeyEvent.Key is Key.F4 && _todoLists.Count > 0)
+            {
+                ShowColorizeDialog(_todoLists[tableView.SelectedRow]);
                 args.Handled = true;
             }
         };
@@ -194,5 +218,15 @@ public class ListOverviewScreen
                 await _todoListRepo.DeleteTodoListByIdAsync(listToDelete.Id);
                 Render(_container!);
             });
+    }
+
+    private void ShowColorizeDialog(TodoList listToColorize)
+    {
+        ColorPickerDialog.Show($"Colorize '{listToColorize.Name}'", listToColorize.Color, async selectedColor =>
+        {
+            listToColorize.Color = selectedColor;
+            await _todoListRepo.UpsertTodoListAsync(listToColorize);
+            Render(_container!);
+        });
     }
 }

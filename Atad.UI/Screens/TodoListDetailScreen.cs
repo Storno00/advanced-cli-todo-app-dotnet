@@ -1,5 +1,6 @@
 using Atad.Application.Interfaces;
 using Atad.Domain.Models;
+using Atad.UI;
 using Atad.UI.Dialogs;
 using Terminal.Gui;
 
@@ -79,6 +80,22 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
             }
         };
 
+        listView.RowRender += args =>
+        {
+            if (args.Row < 0 || args.Row >= _orderedTodos.Count)
+            {
+                return;
+            }
+
+            var todo = _orderedTodos[args.Row];
+            var isFocused = listView.SelectedItem == args.Row;
+
+            if (ColorPalette.TryGetAttribute(todo.Color, isFocused, out var attribute))
+            {
+                args.RowAttribute = attribute;
+            }
+        };
+
         listView.SelectedItemChanged += e => _lastKnownIndexes[list.Id] = e.Item;
 
         listView.KeyPress += async args =>
@@ -151,6 +168,16 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
                 if (selectedTodo is null) return;
 
                 ShowRenameDialog(selectedTodo);
+            }
+
+            // Colorize (F4)
+            if (args.KeyEvent.Key is Key.F4)
+            {
+                args.Handled = true;
+
+                if (selectedTodo is null) return;
+
+                ShowColorizeDialog(selectedTodo);
             }
 
             // Delete (Del)
@@ -281,5 +308,15 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
                 await todoRepo.DeleteTodoByIdAsync(todoToDelete.Id);
                 Render(_container!, _activeList!);
             });
+    }
+
+    private void ShowColorizeDialog(Todo todoToColorize)
+    {
+        ColorPickerDialog.Show($"Colorize '{todoToColorize.Name}'", todoToColorize.Color, async selectedColor =>
+        {
+            todoToColorize.Color = selectedColor;
+            await todoRepo.UpsertTodoAsync(todoToColorize);
+            Render(_container!, _activeList!);
+        });
     }
 }
