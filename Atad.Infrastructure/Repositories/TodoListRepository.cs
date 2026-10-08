@@ -14,7 +14,10 @@ public class TodoListRepository(IMongoDatabase db) : ITodoListRepository
     {
         try
         {
-            return await _collection.Find(_ => true).ToListAsync();
+            return await _collection
+                .Find(_ => true)
+                .SortBy(todoList => todoList.OrderNumber)
+                .ToListAsync();
         }
         catch
         {
@@ -46,9 +49,33 @@ public class TodoListRepository(IMongoDatabase db) : ITodoListRepository
 
             return result.IsAcknowledged;
         }
-        catch (Exception ec)
+        catch
         {
-            Console.WriteLine(ec);
+            return false;
+        }
+    }
+
+    public async Task<bool> UpsertMenyTodoListsAsync(List<TodoList> todoLists)
+    {
+        try
+        {
+            var models = todoLists.Select(todoList =>
+                new ReplaceOneModel<TodoList>(
+                    filter: Builders<TodoList>.Filter.Eq(x => x.Id, todoList.Id),
+                    replacement: todoList)
+                {
+                    IsUpsert = true
+                }
+            ).ToList();
+
+            if (models.Count == 0) return true;
+
+            var result = await _collection.BulkWriteAsync(models);
+
+            return result.IsAcknowledged;
+        }
+        catch
+        {
             return false;
         }
     }

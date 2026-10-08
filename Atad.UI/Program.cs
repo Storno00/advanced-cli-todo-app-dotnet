@@ -1,4 +1,6 @@
-﻿using Atad.Infrastructure;
+﻿using Atad.Application;
+using Atad.Application.Interfaces;
+using Atad.Infrastructure;
 using Atad.UI;
 using Atad.UI.Navigation;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,7 @@ var appSettings = AppSettingsLoader.Load(settingsPath, DefaultMongoConnectionStr
 
 var services = new ServiceCollection();
 
+services.AddApplication();
 services.AddInfrastructure(
     connectionString: "mongodb://localhost:5204",
     databaseName: "AtadTodoDb"
@@ -27,6 +30,13 @@ services.AddSingleton<NavigationContext>();
 services.AddTransient<MainWindow>();
 
 var serviceProvider = services.BuildServiceProvider();
+
+using (var scope = serviceProvider.CreateScope())
+{
+    // Run migrators
+    var migrator = scope.ServiceProvider.GetRequiredService<IMigratorService>();
+    migrator.AddOrderNumbersIfTheyDoesntExistAsync().GetAwaiter().GetResult();
+}
 
 Application.Init();
 
