@@ -5,6 +5,8 @@ namespace Atad.Application.Interfaces;
 public interface ITodoRepository
 {
     public Task<bool> UpsertTodoAsync(Todo todo);
+
+    public Task<bool> UpsertManyTodosAsync(List<Todo> todos);
     
     public Task<List<Todo>> GetAllTodosAsync(Guid todoListId);
 

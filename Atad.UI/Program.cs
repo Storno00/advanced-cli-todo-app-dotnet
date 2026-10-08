@@ -36,6 +36,7 @@ using (var scope = serviceProvider.CreateScope())
     // Run migrators
     var migrator = scope.ServiceProvider.GetRequiredService<IMigratorService>();
     migrator.AddOrderNumbersIfTheyDoesntExistAsync().GetAwaiter().GetResult();
+    migrator.AddTodoOrderNumbersIfTheyDoesntExistAsync().GetAwaiter().GetResult();
 }
 
 Application.Init();

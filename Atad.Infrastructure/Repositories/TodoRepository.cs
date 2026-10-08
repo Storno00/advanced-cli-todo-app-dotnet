@@ -42,11 +42,48 @@ public class TodoRepository(IMongoDatabase db) : ITodoRepository
         }
     }
 
+    public async Task<bool> UpsertManyTodosAsync(List<Todo> todos)
+    {
+        try
+        {
+            var models = todos.Select(todo =>
+                new ReplaceOneModel<Todo>(
+                    filter: Builders<Todo>.Filter.Eq(x => x.Id, todo.Id),
+                    replacement: todo)
+                {
+                    IsUpsert = true
+                }
+            ).ToList();
+
+            if (models.Count == 0) return true;
+
+            var result = await _collection.BulkWriteAsync(models);
+            var isSuccess = result.IsAcknowledged;
+
+            if (isSuccess)
+            {
+                foreach (var todoListId in todos.Select(todo => todo.TodoListId).Distinct())
+                {
+                    await _todoListRepository.TouchTodoListAsync(todoListId);
+                }
+            }
+
+            return isSuccess;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<List<Todo>> GetAllTodosAsync(Guid todoListId)
     {
         try
         {
-            return await _collection.Find(todo => todo.TodoListId == todoListId).ToListAsync();
+            return await _collection
+                .Find(todo => todo.TodoListId == todoListId)
+                .SortBy(todo => todo.OrderNumber)
+                .ToListAsync();
         }
         catch
         {

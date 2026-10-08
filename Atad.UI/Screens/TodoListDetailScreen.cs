@@ -101,6 +101,35 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
         listView.KeyPress += async args =>
         {
             var selectedTodo = GetSelectedTodo(listView);
+            var normalizedKey = args.KeyEvent.Key & ~Key.AltMask & ~Key.CtrlMask & ~Key.ShiftMask;
+
+            // Move todo up/down (Alt+Up / Alt+Down)
+            if (args.KeyEvent.IsAlt && _orderedTodos.Count > 1)
+            {
+                if (normalizedKey == Key.CursorUp)
+                {
+                    args.Handled = true;
+
+                    if (listView.SelectedItem > 0)
+                    {
+                        await MoveTodo(listView.SelectedItem, listView.SelectedItem - 1);
+                    }
+
+                    return;
+                }
+
+                if (normalizedKey == Key.CursorDown)
+                {
+                    args.Handled = true;
+
+                    if (listView.SelectedItem >= 0 && listView.SelectedItem < _orderedTodos.Count - 1)
+                    {
+                        await MoveTodo(listView.SelectedItem, listView.SelectedItem + 1);
+                    }
+
+                    return;
+                }
+            }
 
             // Toggle ([Space])
             if (args.KeyEvent.Key == Key.Space)
@@ -247,6 +276,28 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
         return result;
     }
 
+    private async Task MoveTodo(int fromIndex, int toIndex)
+    {
+        if (fromIndex < 0 || fromIndex >= _orderedTodos.Count) return;
+        if (toIndex < 0 || toIndex >= _orderedTodos.Count) return;
+        if (fromIndex == toIndex) return;
+
+        var movedTodo = _orderedTodos[fromIndex];
+        _orderedTodos.RemoveAt(fromIndex);
+        _orderedTodos.Insert(toIndex, movedTodo);
+
+        for (var i = 0; i < _orderedTodos.Count; i++)
+        {
+            _orderedTodos[i].OrderNumber = i;
+        }
+
+        var isSuccess = await todoRepo.UpsertManyTodosAsync(_orderedTodos);
+        if (!isSuccess) return;
+
+        _lastKnownIndexes[_activeList!.Id] = toIndex;
+        Render(_container!, _activeList!);
+    }
+
     private void ShowCreateDialog(Guid listId, Guid? parentId = null)
     {
         var dialogTitle = parentId is not null
@@ -255,9 +306,11 @@ public class TodoListDetailScreen(ITodoRepository todoRepo)
 
         TextInputDialog.Show(dialogTitle, "Save", async text =>
         {
+            var nextOrderNumber = _orderedTodos.Count;
+
             var newTodo = parentId is not null
-                ? new Todo { Name = text, TodoListId = listId, ParentId = parentId }
-                : new Todo { Name = text, TodoListId = listId };
+                ? new Todo { Name = text, TodoListId = listId, ParentId = parentId, OrderNumber = nextOrderNumber }
+                : new Todo { Name = text, TodoListId = listId, OrderNumber = nextOrderNumber };
 
             // If parent doesn't have children and parent is compleated, then set to incompleate
             if (newTodo.ParentId is not null && !_orderedTodos.Any(todo => todo.ParentId == parentId))

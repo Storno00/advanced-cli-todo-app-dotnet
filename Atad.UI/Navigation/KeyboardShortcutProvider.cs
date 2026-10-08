@@ -25,6 +25,7 @@ public static class KeyboardShortcutProvider
             new KeyboardShortcutViewModel("[F2]", "Rename"),
             new KeyboardShortcutViewModel("[F3]", "Create new sub"),
             new KeyboardShortcutViewModel("[F4]", "Colorize"),
+            new KeyboardShortcutViewModel("[Alt+↑/↓]", "Move"),
             new KeyboardShortcutViewModel("[Space]", "Toggle done"),
             new KeyboardShortcutViewModel("[Del]", "Remove"),
             new KeyboardShortcutViewModel("[Esc]", "Back")
