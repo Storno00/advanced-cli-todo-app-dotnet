@@ -124,6 +124,33 @@ public class ListOverviewScreen
 
         tableView.KeyDown += args =>
         {
+            var selectedRow = tableView.SelectedRow;
+            var normalizedKey = args.KeyEvent.Key & ~Key.AltMask & ~Key.CtrlMask & ~Key.ShiftMask;
+
+            // Move list up/down (Alt+Up / Alt+Down)
+            if (args.KeyEvent.IsAlt && _todoLists.Count > 1)
+            {
+                if (normalizedKey == Key.CursorUp)
+                {
+                    args.Handled = true;
+
+                    if (selectedRow > 0)
+                    {
+                        MoveTodoList(selectedRow, selectedRow - 1);
+                    }
+                }
+
+                if (normalizedKey == Key.CursorDown)
+                {
+                    args.Handled = true;
+
+                    if (selectedRow >= 0 && selectedRow < _todoLists.Count - 1)
+                    {
+                        MoveTodoList(selectedRow, selectedRow + 1);
+                    }
+                }
+            }
+
             // Create a new list (F1)
             if (args.KeyEvent.Key is Key.F1)
             {
@@ -228,5 +255,27 @@ public class ListOverviewScreen
             await _todoListRepo.UpsertTodoListAsync(listToColorize);
             Render(_container!);
         });
+    }
+
+    private async void MoveTodoList(int fromIndex, int toIndex)
+    {
+        if (fromIndex < 0 || fromIndex >= _todoLists.Count) return;
+        if (toIndex < 0 || toIndex >= _todoLists.Count) return;
+        if (fromIndex == toIndex) return;
+
+        var movedList = _todoLists[fromIndex];
+        _todoLists.RemoveAt(fromIndex);
+        _todoLists.Insert(toIndex, movedList);
+
+        for (var i = 0; i < _todoLists.Count; i++)
+        {
+            _todoLists[i].OrderNumber = i;
+        }
+
+        var isSuccess = await _todoListRepo.UpsertMenyTodoListsAsync(_todoLists);
+        if (!isSuccess) return;
+
+        _lastKnownIndex = toIndex;
+        Render(_container!);
     }
 }
