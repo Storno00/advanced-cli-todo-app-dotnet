@@ -22,8 +22,8 @@ var services = new ServiceCollection();
 
 services.AddApplication();
 services.AddInfrastructure(
-    connectionString: "mongodb://localhost:5204",
-    databaseName: "AtadTodoDb"
+    connectionString: appSettings.ConnectionString,
+    databaseName: appSettings.DatabaseName
 );
 
 services.AddSingleton<NavigationContext>();
